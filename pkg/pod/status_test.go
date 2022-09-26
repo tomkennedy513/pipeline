@@ -508,8 +508,16 @@ func TestMakeTaskRunStatus(t *testing.T) {
 		want: v1beta1.TaskRunStatus{
 			Status: statusFailure(ReasonCreateContainerConfigError, "Failed to create pod due to config error"),
 			TaskRunStatusFields: v1beta1.TaskRunStatusFields{
-				Steps:    []v1beta1.StepState{},
-				Sidecars: []v1beta1.SidecarState{},
+				Steps: []v1beta1.StepState{},
+				Sidecars: []v1beta1.SidecarState{
+					{
+						ContainerState: corev1.ContainerState{
+							Waiting: &corev1.ContainerStateWaiting{
+								Reason: "CreateContainerConfigError",
+							},
+						},
+					},
+				},
 			},
 		},
 	}, {

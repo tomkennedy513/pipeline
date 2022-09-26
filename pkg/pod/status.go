@@ -135,7 +135,7 @@ func MakeTaskRunStatus(ctx context.Context, logger *zap.SugaredLogger, tr v1beta
 	for _, s := range pod.Status.ContainerStatuses {
 		if IsContainerStep(s.Name) {
 			stepStatuses = append(stepStatuses, s)
-		} else if isContainerSidecar(s.Name) {
+		} else {
 			sidecarStatuses = append(sidecarStatuses, s)
 		}
 	}

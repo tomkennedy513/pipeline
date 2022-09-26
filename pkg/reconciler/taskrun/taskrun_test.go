@@ -4438,6 +4438,66 @@ status:
 	}
 }
 
+func TestStopSidecars_WithInjectedSidecarsNoTaskSpecSidecars(t *testing.T) {
+	taskRun := parse.MustParseV1beta1TaskRun(t, `
+metadata:
+  name: test-taskrun-injected-sidecars
+  namespace: foo
+spec:
+  taskRef:
+    name: test-task
+status:
+  podName: test-taskrun-injected-sidecars-pod
+  conditions:
+  - message: Build succeeded
+    reason: Build succeeded
+    status: "True"
+    type: Succeeded
+  sidecars:
+  - container: injected-sidecar
+    imageID: image-id
+    name: sidecar
+    running:
+      startedAt: "2022-01-01T00:00:00Z"
+`)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-taskrun-injected-sidecars-pod",
+			Namespace: "foo",
+		},
+	}
+
+	d := test.Data{
+		Pods:     []*corev1.Pod{pod},
+		TaskRuns: []*v1beta1.TaskRun{taskRun},
+		Tasks:    []*v1beta1.Task{simpleTask},
+	}
+
+	testAssets, cancel := getTaskRunController(t, d)
+	defer cancel()
+	c := testAssets.Controller
+	clients := testAssets.Clients
+	reconcileErr := c.Reconciler.Reconcile(testAssets.Ctx, getRunName(taskRun))
+
+	// We do not expect an error
+	if reconcileErr != nil {
+		t.Errorf("Expected no error to be returned by reconciler: %v", reconcileErr)
+	}
+
+	// Verify that the pod was retrieved.
+	getPodFound := false
+	for _, action := range clients.Kube.Actions() {
+		if action.Matches("get", "pods") {
+			getPodFound = true
+			break
+		}
+	}
+	if !getPodFound {
+		t.Errorf("expected the pod to be retrieved to check if sidecars need to be stopped")
+	}
+}
+
 func TestStopSidecars_NoClientGetPodForTaskSpecWithoutRunningSidecars(t *testing.T) {
 	for _, tc := range []struct {
 		desc string
